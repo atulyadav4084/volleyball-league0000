@@ -1,0 +1,801 @@
+import React, { useState, useEffect } from 'react';
+import { Trophy, Users, Calendar, Award, Edit2, Save, X, Lock, Unlock } from 'lucide-react';
+
+// Match Card Component
+const MatchCard = ({ match, team1, team2, team1Sets, team2Sets, isAdmin, updateMatchScore, updateMatchStatus, setMatches, isFinal = false }) => {
+  return (
+    <div className={`bg-gray-800 rounded-xl shadow-2xl overflow-hidden ${isFinal ? 'border-4 border-yellow-400' : ''}`}>
+      <div className={`px-6 py-4 flex justify-between items-center ${
+        isFinal ? 'bg-gradient-to-r from-yellow-600 to-orange-600' : 
+        'bg-gradient-to-r from-purple-600 to-pink-600'
+      }`}>
+        <div>
+          <h3 className="text-xl font-bold">
+            {match.type === 'league' ? 'League Match' : 
+             match.type === 'eliminator' ? '⚡ Eliminator' : '🏆 GRAND FINAL'}
+          </h3>
+          <p className={`text-sm ${isFinal ? 'text-yellow-100' : 'text-purple-100'}`}>Match #{match.id}</p>
+        </div>
+        {isAdmin && (
+          <select
+            value={match.status}
+            onChange={(e) => updateMatchStatus(match.id, e.target.value)}
+            className="bg-white text-gray-900 px-4 py-2 rounded-lg font-semibold"
+          >
+            <option value="upcoming">Upcoming</option>
+            <option value="live">Live</option>
+            <option value="completed">Completed</option>
+          </select>
+        )}
+      </div>
+
+      <div className="p-6">
+        <div className="flex justify-between items-center mb-6">
+          <div className="text-center flex-1">
+            <h4 className="text-2xl font-bold mb-2">{team1?.name || 'TBD'}</h4>
+            <p className="text-4xl font-bold text-purple-400">{team1Sets}</p>
+          </div>
+          <div className="px-8">
+            <p className="text-gray-400 text-xl">vs</p>
+          </div>
+          <div className="text-center flex-1">
+            <h4 className="text-2xl font-bold mb-2">{team2?.name || 'TBD'}</h4>
+            <p className="text-4xl font-bold text-pink-400">{team2Sets}</p>
+          </div>
+        </div>
+
+        {match.status === 'live' && (
+          <div className="text-center mb-4">
+            <span className="bg-red-600 text-white px-4 py-2 rounded-full font-bold animate-pulse">
+              🔴 LIVE
+            </span>
+          </div>
+        )}
+
+        {/* Winner Announcement */}
+        {match.status === 'completed' && team1Sets !== team2Sets && (
+          <div className="text-center mb-4">
+            <div className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-3 rounded-lg font-bold text-xl">
+              🎉 {team1Sets > team2Sets ? team1?.name : team2?.name} WINS! 🎉
+            </div>
+          </div>
+        )}
+
+        {/* Sets Scorecard */}
+        <div className="space-y-3">
+          {match.sets.map((set, index) => (
+            <div key={index} className="bg-gray-700 rounded-lg p-4">
+              <div className="flex justify-between items-center">
+                <p className="font-semibold text-lg mb-2">Set {index + 1}</p>
+              </div>
+              <div className="flex justify-between items-center">
+                <div className="flex-1 text-center">
+                  {isAdmin && match.status !== 'completed' ? (
+                    <input
+                      type="number"
+                      value={set.team1Score}
+                      onChange={(e) => updateMatchScore(match.id, index, 'team1', e.target.value)}
+                      className="bg-gray-600 text-white text-2xl font-bold w-20 px-2 py-1 rounded text-center"
+                      min="0"
+                      max="50"
+                    />
+                  ) : (
+                    <span className={`text-2xl font-bold ${set.team1Score > set.team2Score ? 'text-green-400' : ''}`}>
+                      {set.team1Score}
+                    </span>
+                  )}
+                </div>
+                <span className="px-4 text-gray-400">-</span>
+                <div className="flex-1 text-center">
+                  {isAdmin && match.status !== 'completed' ? (
+                    <input
+                      type="number"
+                      value={set.team2Score}
+                      onChange={(e) => updateMatchScore(match.id, index, 'team2', e.target.value)}
+                      className="bg-gray-600 text-white text-2xl font-bold w-20 px-2 py-1 rounded text-center"
+                      min="0"
+                      max="50"
+                    />
+                  ) : (
+                    <span className={`text-2xl font-bold ${set.team2Score > set.team1Score ? 'text-green-400' : ''}`}>
+                      {set.team2Score}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* MOTM - Always show for all matches */}
+        <div className={`mt-6 rounded-lg p-4 ${
+          match.status === 'completed' 
+            ? 'bg-gradient-to-r from-yellow-600 to-orange-600' 
+            : 'bg-gray-700'
+        }`}>
+          <div className="flex items-center gap-3">
+            <Award size={24} className={match.status === 'completed' ? 'text-yellow-200' : 'text-gray-400'} />
+            <div className="flex-1">
+              <p className={`text-sm ${match.status === 'completed' ? 'text-yellow-100' : 'text-gray-400'}`}>
+                Man of the Match
+              </p>
+              {isAdmin ? (
+                <input
+                  type="text"
+                  value={match.motm}
+                  onChange={(e) => {
+                    setMatches(prev => prev.map(m => 
+                      m.id === match.id ? { ...m, motm: e.target.value } : m
+                    ));
+                  }}
+                  placeholder="Enter player name"
+                  className={`font-bold text-lg px-3 py-1 rounded w-full ${
+                    match.status === 'completed' 
+                      ? 'bg-yellow-700 text-white' 
+                      : 'bg-gray-600 text-white'
+                  }`}
+                />
+              ) : (
+                <p className="font-bold text-lg">{match.motm || 'TBD'}</p>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const VolleyballLeague = () => {
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [password, setPassword] = useState('');
+  const [showLogin, setShowLogin] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [activeTab, setActiveTab] = useState('standings');
+  const [selectedTeam, setSelectedTeam] = useState(null);
+  const [selectedMatch, setSelectedMatch] = useState(null);
+
+  const [teams, setTeams] = useState([
+    {
+      id: 1,
+      name: 'Udan Khatole',
+      played: 0,
+      won: 0,
+      lost: 0,
+      points: 0,
+      setsWon: 0,
+      setsLost: 0,
+      players: [
+        { name: 'Aryan Tripathi', role: 'c' },
+        { name: 'Aayush Chauhan', role: 'vc' },
+        { name: 'Atul Kumar', role: '' },
+        { name: 'Rudra dev', role: '' },
+        { name: 'Priyanshu', role: '' },
+        { name: 'Aman', role: '' },
+        { name: 'Krishnakant', role: '' },
+        { name: 'Raj Kaushal', role: '' }
+      ]
+    },
+    {
+      id: 2,
+      name: 'Net Dominators',
+      played: 0,
+      won: 0,
+      lost: 0,
+      points: 0,
+      setsWon: 0,
+      setsLost: 0,
+      players: [
+        { name: 'Ayush Shukla', role: 'c' },
+        { name: 'Vishesh', role: 'vc' },
+        { name: 'Parv', role: '' },
+        { name: 'Chetan', role: '' },
+        { name: 'Ananya', role: '' },
+        { name: 'Ajay', role: '' },
+        { name: 'Harshit', role: '' },
+        { name: 'Piyush', role: '' }
+      ]
+    },
+    {
+      id: 3,
+      name: 'Spikers',
+      played: 0,
+      won: 0,
+      lost: 0,
+      points: 0,
+      setsWon: 0,
+      setsLost: 0,
+      players: [
+        { name: 'Tanmay', role: 'c' },
+        { name: 'Manish', role: 'vc' },
+        { name: 'Alpha', role: '' },
+        { name: 'Aarush', role: '' },
+        { name: 'Om', role: '' },
+        { name: 'Rajan', role: '' },
+        { name: 'Sanskar', role: '' },
+        { name: 'Samvritt', role: '' }
+      ]
+    },
+    {
+      id: 4,
+      name: 'Court Crushers',
+      played: 0,
+      won: 0,
+      lost: 0,
+      points: 0,
+      setsWon: 0,
+      setsLost: 0,
+      players: [
+        { name: 'Arjun', role: 'c' },
+        { name: 'Bipul', role: 'vc' },
+        { name: 'Shivam', role: '' },
+        { name: 'Vaibhav', role: '' },
+        { name: 'Harsh Raja', role: '' },
+        { name: 'Prashant Pratap', role: '' },
+        { name: 'Jaideep', role: '' }
+      ]
+    },
+    {
+      id: 5,
+      name: 'Bulls Warriors',
+      played: 0,
+      won: 0,
+      lost: 0,
+      points: 0,
+      setsWon: 0,
+      setsLost: 0,
+      players: [
+        { name: 'Aakash Gupta', role: 'c' },
+        { name: 'Avnish', role: 'vc' },
+        { name: 'Arpit Yadav', role: '' },
+        { name: 'Tavansh', role: '' },
+        { name: 'Neelansh Mishra', role: '' },
+        { name: 'Abhay Kumar', role: '' },
+        { name: 'Aakash Gupta', role: '' }
+      ]
+    },
+    {
+      id: 6,
+      name: 'Volley Smashers',
+      played: 0,
+      won: 0,
+      lost: 0,
+      points: 0,
+      setsWon: 0,
+      setsLost: 0,
+      players: [
+        { name: 'Sumit', role: 'c' },
+        { name: 'Kunal', role: 'vc' },
+        { name: 'Aditya Nirwal', role: '' },
+        { name: 'Adarsh Tiwari', role: '' },
+        { name: 'Shahnawaz Alam', role: '' },
+        { name: 'Vivek', role: '' },
+        { name: 'Anubhav Singh', role: '' },
+        { name: 'Saurabh', role: '' }
+      ]
+    }
+  ]);
+
+  // Generate all league matches (each team plays every other team once)
+  const generateLeagueMatches = () => {
+    const matches = [];
+    let matchId = 1;
+    
+    // Generate all unique pairs of teams
+    for (let i = 1; i <= 6; i++) {
+      for (let j = i + 1; j <= 6; j++) {
+        matches.push({
+          id: matchId++,
+          team1: i,
+          team2: j,
+          status: 'upcoming',
+          type: 'league',
+          sets: [
+            { team1Score: 0, team2Score: 0 },
+            { team1Score: 0, team2Score: 0 },
+            { team1Score: 0, team2Score: 0 }
+          ],
+          motm: ''
+        });
+      }
+    }
+    
+    // Add eliminator match (2nd vs 3rd)
+    matches.push({
+      id: matchId++,
+      team1: null,
+      team2: null,
+      status: 'upcoming',
+      type: 'eliminator',
+      sets: [
+        { team1Score: 0, team2Score: 0 },
+        { team1Score: 0, team2Score: 0 },
+        { team1Score: 0, team2Score: 0 },
+        { team1Score: 0, team2Score: 0 },
+        { team1Score: 0, team2Score: 0 }
+      ],
+      motm: ''
+    });
+    
+    // Add final match (1st vs eliminator winner)
+    matches.push({
+      id: matchId++,
+      team1: null,
+      team2: null,
+      status: 'upcoming',
+      type: 'final',
+      sets: [
+        { team1Score: 0, team2Score: 0 },
+        { team1Score: 0, team2Score: 0 },
+        { team1Score: 0, team2Score: 0 },
+        { team1Score: 0, team2Score: 0 },
+        { team1Score: 0, team2Score: 0 }
+      ],
+      motm: ''
+    });
+    
+    return matches;
+  };
+
+  const [matches, setMatches] = useState(generateLeagueMatches());
+
+  const handleLogin = () => {
+    if (password === 'admin123') {
+      setIsAdmin(true);
+      setShowLogin(false);
+      setPassword('');
+    } else {
+      alert('Incorrect password!');
+    }
+  };
+
+  const handleLogout = () => {
+    setIsAdmin(false);
+    setEditMode(false);
+  };
+
+  const updateMatchScore = (matchId, setIndex, team, score) => {
+    setMatches(prev => prev.map(match => {
+      if (match.id === matchId) {
+        const newSets = [...match.sets];
+        newSets[setIndex] = {
+          ...newSets[setIndex],
+          [team === 'team1' ? 'team1Score' : 'team2Score']: parseInt(score) || 0
+        };
+        return { ...match, sets: newSets };
+      }
+      return match;
+    }));
+  };
+
+  const updateMatchStatus = (matchId, status) => {
+    setMatches(prev => prev.map(match => 
+      match.id === matchId ? { ...match, status } : match
+    ));
+    
+    if (status === 'completed') {
+      const match = matches.find(m => m.id === matchId);
+      if (match) {
+        const team1Sets = match.sets.filter(s => s.team1Score > s.team2Score).length;
+        const team2Sets = match.sets.filter(s => s.team2Score > s.team1Score).length;
+        
+        setTeams(prev => prev.map(team => {
+          if (team.id === match.team1) {
+            return {
+              ...team,
+              played: team.played + 1,
+              won: team1Sets > team2Sets ? team.won + 1 : team.won,
+              lost: team1Sets < team2Sets ? team.lost + 1 : team.lost,
+              points: team1Sets > team2Sets ? team.points + 2 : team.points,
+              setsWon: team.setsWon + team1Sets,
+              setsLost: team.setsLost + team2Sets
+            };
+          }
+          if (team.id === match.team2) {
+            return {
+              ...team,
+              played: team.played + 1,
+              won: team2Sets > team1Sets ? team.won + 1 : team.won,
+              lost: team2Sets < team1Sets ? team.lost + 1 : team.lost,
+              points: team2Sets > team1Sets ? team.points + 2 : team.points,
+              setsWon: team.setsWon + team2Sets,
+              setsLost: team.setsLost + team1Sets
+            };
+          }
+          return team;
+        }));
+      }
+    }
+  };
+
+  const sortedTeams = [...teams].sort((a, b) => {
+    if (b.points !== a.points) return b.points - a.points;
+    const aDiff = a.setsWon - a.setsLost;
+    const bDiff = b.setsWon - b.setsLost;
+    return bDiff - aDiff;
+  });
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 text-white">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-purple-600 to-pink-600 shadow-2xl">
+        <div className="max-w-7xl mx-auto px-4 py-6">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-4xl font-bold flex items-center gap-3">
+                <Trophy className="text-yellow-300" size={40} />
+                Shri Dharacharya Intra Hostel League
+              </h1>
+              <p className="text-purple-100 mt-2 text-lg">Volleyball Championship 2024</p>
+            </div>
+            <div>
+              {!isAdmin ? (
+                <button
+                  onClick={() => setShowLogin(true)}
+                  className="bg-white text-purple-600 px-6 py-3 rounded-lg font-semibold hover:bg-purple-100 transition flex items-center gap-2"
+                >
+                  <Lock size={20} />
+                  Admin Login
+                </button>
+              ) : (
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setEditMode(!editMode)}
+                    className={`px-6 py-3 rounded-lg font-semibold transition flex items-center gap-2 ${
+                      editMode ? 'bg-green-500 hover:bg-green-600' : 'bg-yellow-500 hover:bg-yellow-600'
+                    }`}
+                  >
+                    {editMode ? <><Save size={20} /> Save Mode</> : <><Edit2 size={20} /> Edit Mode</>}
+                  </button>
+                  <button
+                    onClick={handleLogout}
+                    className="bg-red-500 px-6 py-3 rounded-lg font-semibold hover:bg-red-600 transition flex items-center gap-2"
+                  >
+                    <Unlock size={20} />
+                    Logout
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Login Modal */}
+      {showLogin && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+          <div className="bg-gray-800 p-8 rounded-xl shadow-2xl max-w-md w-full">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold">Admin Login</h2>
+              <button onClick={() => setShowLogin(false)} className="text-gray-400 hover:text-white">
+                <X size={24} />
+              </button>
+            </div>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter admin password"
+              className="w-full px-4 py-3 bg-gray-700 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
+            />
+            <button
+              onClick={handleLogin}
+              className="w-full bg-purple-600 py-3 rounded-lg font-semibold hover:bg-purple-700 transition"
+            >
+              Login
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Navigation */}
+      <div className="max-w-7xl mx-auto px-4 py-6">
+        <div className="flex gap-4 mb-6">
+          <button
+            onClick={() => setActiveTab('standings')}
+            className={`px-6 py-3 rounded-lg font-semibold transition ${
+              activeTab === 'standings' ? 'bg-purple-600' : 'bg-gray-700 hover:bg-gray-600'
+            }`}
+          >
+            <Trophy className="inline mr-2" size={20} />
+            Standings
+          </button>
+          <button
+            onClick={() => setActiveTab('matches')}
+            className={`px-6 py-3 rounded-lg font-semibold transition ${
+              activeTab === 'matches' ? 'bg-purple-600' : 'bg-gray-700 hover:bg-gray-600'
+            }`}
+          >
+            <Calendar className="inline mr-2" size={20} />
+            Matches
+          </button>
+          <button
+            onClick={() => setActiveTab('teams')}
+            className={`px-6 py-3 rounded-lg font-semibold transition ${
+              activeTab === 'teams' ? 'bg-purple-600' : 'bg-gray-700 hover:bg-gray-600'
+            }`}
+          >
+            <Users className="inline mr-2" size={20} />
+            Teams
+          </button>
+        </div>
+
+        {/* Standings Tab */}
+        {activeTab === 'standings' && (
+          <div className="bg-gray-800 rounded-xl shadow-2xl overflow-hidden">
+            <div className="bg-gradient-to-r from-purple-600 to-pink-600 px-6 py-4">
+              <h2 className="text-2xl font-bold">League Standings</h2>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-700">
+                  <tr>
+                    <th className="px-6 py-4 text-left">Pos</th>
+                    <th className="px-6 py-4 text-left">Team</th>
+                    <th className="px-6 py-4 text-center">P</th>
+                    <th className="px-6 py-4 text-center">W</th>
+                    <th className="px-6 py-4 text-center">L</th>
+                    <th className="px-6 py-4 text-center">Sets W</th>
+                    <th className="px-6 py-4 text-center">Sets L</th>
+                    <th className="px-6 py-4 text-center">Pts</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sortedTeams.map((team, index) => (
+                    <tr
+                      key={team.id}
+                      className={`border-b border-gray-700 hover:bg-gray-700 transition ${
+                        index === 0 ? 'bg-green-900 bg-opacity-30' : 
+                        index === 1 || index === 2 ? 'bg-yellow-900 bg-opacity-20' : ''
+                      }`}
+                    >
+                      <td className="px-6 py-4 font-bold text-xl">{index + 1}</td>
+                      <td className="px-6 py-4">
+                        <button
+                          onClick={() => setSelectedTeam(team)}
+                          className="font-semibold text-lg hover:text-purple-400 transition"
+                        >
+                          {team.name}
+                        </button>
+                      </td>
+                      <td className="px-6 py-4 text-center">{team.played}</td>
+                      <td className="px-6 py-4 text-center text-green-400">{team.won}</td>
+                      <td className="px-6 py-4 text-center text-red-400">{team.lost}</td>
+                      <td className="px-6 py-4 text-center">{team.setsWon}</td>
+                      <td className="px-6 py-4 text-center">{team.setsLost}</td>
+                      <td className="px-6 py-4 text-center font-bold text-xl text-yellow-300">{team.points}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="bg-gray-700 px-6 py-4 text-sm">
+              <p><span className="inline-block w-4 h-4 bg-green-900 bg-opacity-30 mr-2"></span>Qualifies for Final</p>
+              <p><span className="inline-block w-4 h-4 bg-yellow-900 bg-opacity-20 mr-2 mt-1"></span>Qualifies for Eliminator</p>
+            </div>
+          </div>
+        )}
+
+        {/* Matches Tab */}
+        {activeTab === 'matches' && (
+          <div className="space-y-6">
+            {/* League Matches */}
+            <div>
+              <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+                <Calendar className="text-purple-400" />
+                League Stage Matches
+              </h2>
+              <div className="space-y-4">
+                {matches.filter(m => m.type === 'league').map((match) => {
+                  const team1 = teams.find(t => t.id === match.team1);
+                  const team2 = teams.find(t => t.id === match.team2);
+                  const team1Sets = match.sets.filter(s => s.team1Score > s.team2Score).length;
+                  const team2Sets = match.sets.filter(s => s.team2Score > s.team1Score).length;
+
+                  return (
+                    <MatchCard 
+                      key={match.id}
+                      match={match}
+                      team1={team1}
+                      team2={team2}
+                      team1Sets={team1Sets}
+                      team2Sets={team2Sets}
+                      isAdmin={isAdmin}
+                      updateMatchScore={updateMatchScore}
+                      updateMatchStatus={updateMatchStatus}
+                      setMatches={setMatches}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Eliminator */}
+            <div>
+              <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+                <Trophy className="text-yellow-400" />
+                Eliminator (2nd vs 3rd)
+              </h2>
+              {matches.filter(m => m.type === 'eliminator').map((match) => {
+                // Auto-assign teams based on standings
+                const eliminatorTeam1 = sortedTeams[1];
+                const eliminatorTeam2 = sortedTeams[2];
+                
+                if (match.team1 === null && eliminatorTeam1) {
+                  match.team1 = eliminatorTeam1.id;
+                }
+                if (match.team2 === null && eliminatorTeam2) {
+                  match.team2 = eliminatorTeam2.id;
+                }
+                
+                const team1 = teams.find(t => t.id === match.team1);
+                const team2 = teams.find(t => t.id === match.team2);
+                const team1Sets = match.sets.filter(s => s.team1Score > s.team2Score).length;
+                const team2Sets = match.sets.filter(s => s.team2Score > s.team1Score).length;
+
+                return (
+                  <MatchCard 
+                    key={match.id}
+                    match={match}
+                    team1={team1}
+                    team2={team2}
+                    team1Sets={team1Sets}
+                    team2Sets={team2Sets}
+                    isAdmin={isAdmin}
+                    updateMatchScore={updateMatchScore}
+                    updateMatchStatus={updateMatchStatus}
+                    setMatches={setMatches}
+                  />
+                );
+              })}
+            </div>
+
+            {/* Final */}
+            <div>
+              <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+                <Trophy className="text-yellow-300" />
+                🏆 FINAL
+              </h2>
+              {matches.filter(m => m.type === 'final').map((match) => {
+                // Auto-assign 1st place team
+                const finalTeam1 = sortedTeams[0];
+                
+                // Get eliminator winner
+                const eliminatorMatch = matches.find(m => m.type === 'eliminator');
+                let finalTeam2 = null;
+                
+                if (eliminatorMatch && eliminatorMatch.status === 'completed') {
+                  const elim1Sets = eliminatorMatch.sets.filter(s => s.team1Score > s.team2Score).length;
+                  const elim2Sets = eliminatorMatch.sets.filter(s => s.team2Score > s.team1Score).length;
+                  
+                  if (elim1Sets > elim2Sets) {
+                    finalTeam2 = teams.find(t => t.id === eliminatorMatch.team1);
+                  } else if (elim2Sets > elim1Sets) {
+                    finalTeam2 = teams.find(t => t.id === eliminatorMatch.team2);
+                  }
+                }
+                
+                if (match.team1 === null && finalTeam1) {
+                  match.team1 = finalTeam1.id;
+                }
+                if (match.team2 === null && finalTeam2) {
+                  match.team2 = finalTeam2.id;
+                }
+                
+                const team1 = teams.find(t => t.id === match.team1);
+                const team2 = finalTeam2;
+                const team1Sets = match.sets.filter(s => s.team1Score > s.team2Score).length;
+                const team2Sets = match.sets.filter(s => s.team2Score > s.team1Score).length;
+
+                return (
+                  <MatchCard 
+                    key={match.id}
+                    match={match}
+                    team1={team1}
+                    team2={team2}
+                    team1Sets={team1Sets}
+                    team2Sets={team2Sets}
+                    isAdmin={isAdmin}
+                    updateMatchScore={updateMatchScore}
+                    updateMatchStatus={updateMatchStatus}
+                    setMatches={setMatches}
+                    isFinal={true}
+                  />
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Teams Tab */}
+        {activeTab === 'teams' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {teams.map((team) => (
+              <div
+                key={team.id}
+                className="bg-gray-800 rounded-xl shadow-2xl overflow-hidden hover:transform hover:scale-105 transition cursor-pointer"
+                onClick={() => setSelectedTeam(team)}
+              >
+                <div className="bg-gradient-to-r from-purple-600 to-pink-600 px-6 py-4">
+                  <h3 className="text-xl font-bold">{team.name}</h3>
+                </div>
+                <div className="p-6">
+                  <div className="space-y-2">
+                    {team.players.map((player, index) => (
+                      <div key={index} className="flex justify-between items-center py-2 border-b border-gray-700">
+                        <span>{player.name}</span>
+                        {player.role && (
+                          <span className="bg-purple-600 px-2 py-1 rounded text-xs font-semibold">
+                            {player.role.toUpperCase()}
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Team Detail Modal */}
+      {selectedTeam && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-800 rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="bg-gradient-to-r from-purple-600 to-pink-600 px-6 py-4 flex justify-between items-center sticky top-0">
+              <h2 className="text-2xl font-bold">{selectedTeam.name}</h2>
+              <button onClick={() => setSelectedTeam(null)} className="text-white hover:text-gray-200">
+                <X size={28} />
+              </button>
+            </div>
+            <div className="p-6">
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <div className="bg-gray-700 p-4 rounded-lg text-center">
+                  <p className="text-gray-400 text-sm">Matches Played</p>
+                  <p className="text-3xl font-bold">{selectedTeam.played}</p>
+                </div>
+                <div className="bg-gray-700 p-4 rounded-lg text-center">
+                  <p className="text-gray-400 text-sm">Points</p>
+                  <p className="text-3xl font-bold text-yellow-300">{selectedTeam.points}</p>
+                </div>
+                <div className="bg-gray-700 p-4 rounded-lg text-center">
+                  <p className="text-gray-400 text-sm">Won</p>
+                  <p className="text-3xl font-bold text-green-400">{selectedTeam.won}</p>
+                </div>
+                <div className="bg-gray-700 p-4 rounded-lg text-center">
+                  <p className="text-gray-400 text-sm">Lost</p>
+                  <p className="text-3xl font-bold text-red-400">{selectedTeam.lost}</p>
+                </div>
+              </div>
+
+              <h3 className="text-xl font-bold mb-4">Squad</h3>
+              <div className="space-y-3">
+                {selectedTeam.players.map((player, index) => (
+                  <div key={index} className="bg-gray-700 p-4 rounded-lg flex justify-between items-center">
+                    <div>
+                      <p className="font-semibold text-lg">{player.name}</p>
+                      {player.role && (
+                        <p className="text-sm text-gray-400">
+                          {player.role === 'c' ? 'Captain' : 'Vice Captain'}
+                        </p>
+                      )}
+                    </div>
+                    {player.role && (
+                      <span className="bg-purple-600 px-3 py-1 rounded-full text-sm font-semibold">
+                        {player.role.toUpperCase()}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default VolleyballLeague;
