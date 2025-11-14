@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Admin - Update Score</title>
+  <style>
+    body { font-family: Arial; background: #111; color: #fff; text-align: center; }
+    input, button { padding: 10px; margin: 10px; width: 80%; }
+    button { background: #ffcc00; border: none; font-size: 18px; }
+  </style>
+</head>
+<body>
+
+  <h1>Admin Panel</h1>
+
+  <input type="text" id="team1" placeholder="Team 1 Name">
+  <input type="number" id="score1" placeholder="Team 1 Score">
+
+  <input type="text" id="team2" placeholder="Team 2 Name">
+  <input type="number" id="score2" placeholder="Team 2 Score">
+
+  <button id="saveBtn">Save Score</button>
+
+  <script type="module">
+    import { db } from './firebase.js';
+    import { ref, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+    document.getElementById("saveBtn").addEventListener("click", () => {
+      set(ref(db, "liveScore"), {
+        team1: document.getElementById("team1").value,
+        score1: document.getElementById("score1").value,
+        team2: document.getElementById("team2").value,
+        score2: document.getElementById("score2").value
+      });
+
+      alert("Updated Successfully!");
+    });
+  </script>
+
+</body>
+</html>
