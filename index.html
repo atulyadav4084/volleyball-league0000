@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Volleyball League - Live Score</title>
+  <style>
+    body { font-family: Arial; background: #111; color: #fff; text-align: center; }
+    .box { background: #222; padding: 20px; margin: 20px auto; width: 90%; max-width: 400px; border-radius: 10px; }
+    h1 { color: #ffcc00; }
+    .score { font-size: 40px; font-weight: bold; color: #00eaff; }
+  </style>
+</head>
+<body>
+
+  <h1>🏐 Shri Dharacharya Intra Hostel League</h1>
+
+  <div class="box">
+    <h2 id="team1">Team A</h2>
+    <div class="score" id="score1">0</div>
+  </div>
+
+  <div class="box">
+    <h2 id="team2">Team B</h2>
+    <div class="score" id="score2">0</div>
+  </div>
+
+  <script type="module">
+    import { db } from './firebase.js';
+    import { ref, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+    const leagueRef = ref(db, "liveScore");
+
+    onValue(leagueRef, (snapshot) => {
+      const data = snapshot.val();
+      document.getElementById("team1").innerText = data.team1;
+      document.getElementById("score1").innerText = data.score1;
+      document.getElementById("team2").innerText = data.team2;
+      document.getElementById("score2").innerText = data.score2;
+    });
+  </script>
+
+</body>
+</html>
